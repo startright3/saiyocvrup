@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#102a23" />
+  <title>START RIGHT｜録画面接</title>
+  <style>
+    :root{--ink:#102a23;--muted:#63706b;--paper:#f6f8f5;--card:#fff;--accent:#d9ff5a;--line:#dce4df;--danger:#b42318}
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink)}
+    .wrap{max-width:860px;margin:auto;padding:28px 18px 64px}.brand{font-weight:800;letter-spacing:.08em}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--muted);margin-top:28px}
+    h1{font-size:clamp(32px,7vw,56px);line-height:1.05;margin:8px 0 16px}h2{font-size:26px;margin:0 0 8px}.lead{color:var(--muted);line-height:1.8;max-width:650px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;margin-top:24px;box-shadow:0 10px 30px rgba(16,42,35,.06)}
+    .roles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.role{appearance:none;text-align:left;border:1px solid var(--line);background:#fff;border-radius:18px;padding:18px;cursor:pointer;color:inherit}.role:hover,.role.active{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}.role b{display:block;font-size:17px;margin-bottom:6px}.role span{color:var(--muted);font-size:13px;line-height:1.5}
+    .btn{appearance:none;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;padding:14px 20px;cursor:pointer}.btn.secondary{background:#eef2ef;color:var(--ink)}.btn.danger{background:var(--danger)}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.hidden{display:none!important}.question{font-size:22px;line-height:1.45;margin:16px 0}.meta{font-size:13px;color:var(--muted)}video{width:100%;max-height:480px;background:#08110e;border-radius:18px;margin-top:16px}.progress{display:flex;gap:7px;margin:12px 0}.dot{height:7px;flex:1;background:#e7ece8;border-radius:999px}.dot.on{background:var(--ink)}
+    .notice{background:#f0f7d8;border-radius:14px;padding:13px 14px;font-size:14px;line-height:1.6;margin-top:16px}.error{color:var(--danger);font-size:14px;margin-top:12px}.summary{display:grid;gap:10px;margin-top:16px}.summary div{border:1px solid var(--line);border-radius:14px;padding:12px}.summary small{color:var(--muted)}
+    @media(max-width:620px){.roles{grid-template-columns:1fr}.panel{padding:18px;border-radius:20px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">START RIGHT</div>
+    <p class="eyebrow">RECORDED INTERVIEW</p>
+    <h1>録画面接</h1>
+    <p class="lead">応募職種を選ぶと、その職種に合った質問へ自動で切り替わります。スマートフォンでもそのまま録画できます。</p>
+
+    <section id="step-role" class="panel">
+      <h2>応募職種を選択</h2>
+      <p class="lead">応募時に案内された職種を選んでください。</p>
+      <div class="roles" id="roles"></div>
+      <div class="actions"><button id="roleNext" class="btn" disabled>この職種で進む</button></div>
+    </section>
+
+    <section id="step-prepare" class="panel hidden">
+      <h2 id="roleTitle"></h2>
+      <p class="lead" id="roleIntro"></p>
+      <div class="notice">録画前にカメラとマイクの使用許可が求められます。回答は1問ずつ録画し、確認してから次へ進めます。</div>
+      <div class="actions"><button id="cameraCheck" class="btn">カメラ・マイクを確認</button><button id="backRole" class="btn secondary">職種を選び直す</button></div>
+      <p id="permissionError" class="error hidden"></p>
+      <video id="live" class="hidden" autoplay muted playsinline></video>
+      <div id="startActions" class="actions hidden"><button id="startInterview" class="btn">面接を開始</button></div>
+    </section>
+
+    <section id="step-record" class="panel hidden">
+      <div class="meta" id="qMeta"></div>
+      <div class="progress" id="progress"></div>
+      <div class="question" id="question"></div>
+      <video id="preview" autoplay muted playsinline></video>
+      <div class="actions">
+        <button id="recordBtn" class="btn danger">録画開始</button>
+        <button id="stopBtn" class="btn secondary" disabled>録画終了</button>
+        <button id="retryBtn" class="btn secondary hidden">撮り直す</button>
+        <button id="nextBtn" class="btn hidden">この回答で次へ</button>
+      </div>
+      <p class="meta" id="recordStatus">録画開始を押して回答してください。</p>
+    </section>
+
+    <section id="step-done" class="panel hidden">
+      <h2>録画が完了しました</h2>
+      <p class="lead">すべての質問への回答が揃いました。</p>
+      <div id="summary" class="summary"></div>
+      <div class="notice"><b>現在は提出前の確認版です。</b><br>録画データのサーバー送信先を接続すると、そのまま応募者DB・Talent Pool・採用CRMへ連携できる構成です。</div>
+    </section>
+  </main>
+
+<script>
+const roles={
+  driver:{title:'軽貨物ドライバー',intro:'働き方・運転経験・稼働条件を中心に確認します。',questions:['自己紹介と、START RIGHTへ応募した理由を教えてください。','これまでの運転・配送経験と、安全運転で意識していることを教えてください。','希望する稼働エリア・曜日・時間帯を教えてください。','仕事中にトラブルが起きた場合、どのように報告・対応しますか。']},
+  leader:{title:'事業責任者候補',intro:'事業推進・数値責任・チーム運営について確認します。',questions:['自己紹介と、これまで最も成果を出した事業・プロジェクトを教えてください。','売上や利益などのKPIを持って改善した経験を、具体的な数字を交えて教えてください。','少人数・AI・外部パートナーを活用して事業を伸ばすなら、どう設計しますか。','START RIGHTで90日間任された場合、最初に何を実行しますか。']},
+  sales:{title:'営業・アライアンス',intro:'新規開拓・提携構築・案件化力について確認します。',questions:['自己紹介と、法人営業またはアライアンスの経験を教えてください。','新規顧客をゼロから開拓した事例と、行動量・成果を教えてください。','関係者が多い案件を前に進めるとき、何を重視しますか。','START RIGHTの物流・AI/DX・Businessの中で、どんな顧客接点を作れそうですか。']},
+  ai:{title:'AI / DX・開発',intro:'実装力・業務改善・AI活用について確認します。',questions:['自己紹介と、これまでに作ったシステムや自動化の代表例を教えてください。','AIや自動化で業務時間やコストを改善した具体例を教えてください。','要件が曖昧な状態から短期間でプロトタイプを作るとき、どう進めますか。','START RIGHTの業務で最初に自動化すると効果が大きい領域はどこだと思いますか。']},
+  other:{title:'その他職種',intro:'経験・強み・希望する役割について確認します。',questions:['自己紹介と、今回応募した理由を教えてください。','これまでの経験の中で、START RIGHTで活かせる強みを教えてください。','仕事を進めるうえで大切にしていることを教えてください。','入社・参画した場合、どんな役割で価値を出したいですか。']}
+};
+const $=s=>document.querySelector(s);let selected=null,stream=null,recorder=null,chunks=[],answers=[],q=0;
+const labels={driver:'軽貨物ドライバー',leader:'事業責任者候補',sales:'営業・アライアンス',ai:'AI / DX・開発',other:'その他職種'};
+const roleDesc={driver:'配送・スポット・定期便など',leader:'事業づくり・P/L・組織運営',sales:'法人営業・提携・新規開拓',ai:'AI導入・システム開発・自動化',other:'上記以外の職種'};
+function show(id){['step-role','step-prepare','step-record','step-done'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==id))}
+Object.keys(roles).forEach(key=>{const b=document.createElement('button');b.className='role';b.innerHTML=`<b>${labels[key]}</b><span>${roleDesc[key]}</span>`;b.onclick=()=>{selected=key;document.querySelectorAll('.role').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#roleNext').disabled=false;history.replaceState(null,'',`?role=${key}`)};$('#roles').appendChild(b)});
+$('#roleNext').onclick=()=>{const r=roles[selected];$('#roleTitle').textContent=r.title;$('#roleIntro').textContent=r.intro;show('step-prepare')};
+$('#backRole').onclick=()=>show('step-role');
+$('#cameraCheck').onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});$('#live').srcObject=stream;$('#live').classList.remove('hidden');$('#startActions').classList.remove('hidden');$('#permissionError').classList.add('hidden')}catch(e){$('#permissionError').textContent='カメラまたはマイクを利用できません。ブラウザ設定を確認してください。';$('#permissionError').classList.remove('hidden')}};
+$('#startInterview').onclick=()=>{q=0;answers=[];$('#preview').srcObject=stream;show('step-record');renderQ()};
+function renderQ(){const qs=roles[selected].questions;$('#qMeta').textContent=`${roles[selected].title}｜質問 ${q+1} / ${qs.length}`;$('#question').textContent=qs[q];$('#progress').innerHTML=qs.map((_,i)=>`<span class="dot ${i<=q?'on':''}"></span>`).join('');$('#recordBtn').disabled=false;$('#stopBtn').disabled=true;$('#retryBtn').classList.add('hidden');$('#nextBtn').classList.add('hidden');$('#recordStatus').textContent='録画開始を押して回答してください。';$('#preview').controls=false;$('#preview').srcObject=stream}
+$('#recordBtn').onclick=()=>{chunks=[];const type=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';recorder=new MediaRecorder(stream,{mimeType:type});recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{const blob=new Blob(chunks,{type:recorder.mimeType});answers[q]=blob;$('#preview').srcObject=null;$('#preview').src=URL.createObjectURL(blob);$('#preview').muted=false;$('#preview').controls=true;$('#retryBtn').classList.remove('hidden');$('#nextBtn').classList.remove('hidden');$('#recordStatus').textContent='回答を確認してください。問題なければ次へ進みます。'};recorder.start();$('#recordBtn').disabled=true;$('#stopBtn').disabled=false;$('#recordStatus').textContent='録画中です…'};
+$('#stopBtn').onclick=()=>{if(recorder&&recorder.state==='recording')recorder.stop();$('#stopBtn').disabled=true};
+$('#retryBtn').onclick=()=>renderQ();
+$('#nextBtn').onclick=()=>{q++;if(q<roles[selected].questions.length){renderQ()}else{finish()}};
+function finish(){if(stream)stream.getTracks().forEach(t=>t.stop());$('#summary').innerHTML=roles[selected].questions.map((x,i)=>`<div><small>質問 ${i+1}</small><br>${x}<br><small>録画済み ${(answers[i].size/1024/1024).toFixed(1)} MB</small></div>`).join('');show('step-done')}
+const initial=new URLSearchParams(location.search).get('role');if(initial&&roles[initial]){[...document.querySelectorAll('.role')][Object.keys(roles).indexOf(initial)].click()}
+</script>
+</body>
+</html>
