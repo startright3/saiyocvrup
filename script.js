@@ -66,11 +66,42 @@
     } catch (_) {}
   };
 
+  const applyPayTransparency = () => {
+    const faqItems = Array.from(document.querySelectorAll('.faq-item'));
+    const rewardFaq = faqItems.find((item) => item.querySelector('.faq-question')?.textContent?.includes('報酬はどのくらい'));
+    const rewardAnswer = rewardFaq?.querySelector('.faq-answer p');
+
+    if (rewardAnswer) {
+      rewardAnswer.textContent = '地域、案件、時間、配送件数、車両などで異なります。案件を受ける前に、報酬額・支払期日・経費負担を確認できます。合わない案件は辞退できます。';
+    }
+
+    if (rewardFaq && !document.querySelector('[data-payday-faq]')) {
+      const paydayFaq = document.createElement('article');
+      paydayFaq.className = 'faq-item reveal visible';
+      paydayFaq.setAttribute('data-payday-faq', '');
+      paydayFaq.innerHTML = `
+        <button class="faq-question" aria-expanded="false">
+          <span><b>Q.</b> 報酬はいつ支払われますか？</span><i aria-hidden="true"></i>
+        </button>
+        <div class="faq-answer"><p>案件ごとに支払日が異なります。主要案件では月末締／翌月末が中心です。AMAZONは月末締／翌月15日前後、建築スポット配送・陸送お迎えは毎月20日締／翌々末です。最終的な支払期日は案件オファー時に明示します。</p></div>
+      `;
+      rewardFaq.insertAdjacentElement('afterend', paydayFaq);
+    }
+
+    const flowItems = document.querySelectorAll('#flow .flow-list li');
+    const conditionStep = flowItems[2];
+    const conditionCopy = conditionStep?.querySelector('p');
+    if (conditionCopy) {
+      conditionCopy.textContent = '地域・時間・車両に加え、報酬額・支払日・経費負担まで確認します。';
+    }
+  };
+
   const header = document.querySelector('[data-header]');
   const sticky = document.querySelector('[data-mobile-sticky]');
   const year = document.querySelector('[data-year]');
 
   if (year) year.textContent = String(new Date().getFullYear());
+  applyPayTransparency();
   sendGrowth('page_view', 'landing_viewed', { title: document.title.slice(0, 200) });
 
   const updateScrollState = () => {
